@@ -242,9 +242,14 @@ print(f"Akurasi model : {acc * 100:.2f}%")
 
 
 
-np.save('npy/X_test_main.npy', X_test)
-np.save('npy/Y_test_main.npy', Y_test)
-np.save('npy/dense_out_logits_main.npy', dense_out_logits)
+np.save('npy/c2_X_test_main.npy', X_test)
+np.save('npy/c2_Y_test_main.npy', Y_test)
+np.save('npy/c2_dense_out_logits_main.npy', dense_out_logits)
+
+np.save(f'keras/{suffix}/X_test_main.npy', X_test)
+np.save(f'keras/{suffix}/Y_test_main.npy', Y_test)
+np.save(f'keras/{suffix}/dense_out_logits_main.npy', dense_out_logits)
+
 print("data test tersimpan")
 
 full_model.save(model_full_name)

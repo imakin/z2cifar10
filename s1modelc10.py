@@ -5,7 +5,8 @@ import argparse
 import tensorflow as tf
 import numpy as np
 from sklearn.metrics import accuracy_score
-from tensorflow.keras.layers import Input, Dense, Flatten, MaxPooling2D, Conv2D, Activation, BatchNormalization
+from tensorflow.keras.layers import Input, Dense, Flatten, MaxPooling2D, Conv2D, Activation, BatchNormalization, Dropout, ZeroPadding2D, RandomCrop, RandomFlip
+from tensorflow.keras.regularizers import l2
 from tensorflow.keras.models import Model
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
@@ -22,7 +23,7 @@ from sys import argv
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', type=str, required=False, default=None)
-filterdefaults = [16,12,8,8,2]
+filterdefaults = [32,64,128,64,10]
 prunedefaults = [0.1, 0.1, 0.1, 0.2, 0.1]
 for x in enumerate(filterdefaults):
     i = x[0]
@@ -52,7 +53,7 @@ shutil.copy(argv[0], f'keras/{suffix}/{argv[0]}')
 
 
 # --- Dataset ---
-BATCH_SIZE = 1024
+BATCH_SIZE = 256
 ds = datasets.c10
 train_data = ds.train
 val_data = ds.val
@@ -72,11 +73,27 @@ def pruneVarious(layer, sparsity_target={}):
             initial_sparsity=0.0,      # Mulai dari 0% bobot nol
             final_sparsity=starget,       # Target akhir berapa % bobot jadi nol
             begin_step=NSTEPS * 2,     # Mulai pruning setelah 2 epoch
-            end_step=NSTEPS * 10,      # Selesai pruning pada epoch ke-10
+            end_step=NSTEPS * 40,      # Selesai pruning pada epoch ke-40
             frequency=NSTEPS           # Update mask pruning setiap 1 epoch
         )
     }
     return tfmot.sparsity.keras.prune_low_magnitude(layer, **pruning_params)
+
+def make_sparse_cce_with_label_smoothing(smoothing=0.05, num_classes=10):
+    """Create a loss that applies label smoothing for sparse integer labels.
+    Works on older TF that lack label_smoothing in SparseCategoricalCrossentropy.
+    """
+    cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+    def loss(y_true, y_pred):
+        # Ensure shape is (batch,) not (batch,1) before one-hot
+        y_true = tf.cast(y_true, tf.int32)
+        y_true = tf.squeeze(y_true)
+        y_true_oh = tf.one_hot(y_true, depth=num_classes)
+        smooth = tf.cast(smoothing, y_pred.dtype)
+        num_c = tf.cast(num_classes, y_pred.dtype)
+        y_true_smoothed = (1.0 - smooth) * y_true_oh + smooth / num_c
+        return cce(y_true_smoothed, y_pred)
+    return loss
 
 
 
@@ -91,69 +108,87 @@ input_shape = shapes[1:]  # ambil shape tanpa batch size. (32,32,3)
 # FPGA model: 3 Conv2D + batchnormalization + MaxPooling + Flatten + quantized
 inputs = Input(shape=input_shape)
 
-#QActivation ini ngubah tipe data pada input dari float32 ke quantisasi yang dipilih, misal 8bit <8,1> atau (16,4,alpha=1) (8bit, 0integer, 1 sign, 7frac)
-x = QActivation('quantized_bits(bits=16,integer=5,alpha=1)', name='input_quant')(inputs)
+# # Augmentasi hanya aktif saat training; inference akan melewati transformasi acak
+aug = tf.keras.Sequential([
+    ZeroPadding2D(4),
+    RandomCrop(32, 32),
+    RandomFlip('horizontal')
+], name='aug')
+x = aug(inputs)
+# QActivation mengkuantisasi input [0,1]; QKeras versi ini tidak mendukung keep_sign arg.
+# Pakai bits=10, integer=0 (signed default) → efektif Q0.9, aman untuk nilai non-negatif.
+x = QActivation('quantized_bits(bits=16,integer=0,alpha=1)', name='input_quant')(x)
 x = QConv2DBatchnorm(
-    args.filter0, #default 10,
+    args.filter0,
     kernel_size=(3, 3),
     strides=(1, 1),
     padding='same', # 'same' bikin layer zero padding
-    kernel_quantizer="quantized_bits(bits=12,integer=4,alpha=1)",
-    bias_quantizer="quantized_bits(bits=12,integer=4,alpha=1)",
+    kernel_quantizer="quantized_bits(bits=12,integer=2,alpha=1)", #more fractional bits
+    bias_quantizer="quantized_bits(bits=12,integer=4,alpha=1)", #more integer bits, use_bias
     kernel_initializer='lecun_uniform',
+    kernel_regularizer=l2(1e-4),
     use_bias=True,
     name='fused_convbn_0'
 )(x)
-x = QActivation('quantized_relu(bits=9,integer=4)', name='conv_act_0')(x)
+x = QActivation('quantized_relu(bits=10,integer=2)', name='conv_act_0')(x)
 x = MaxPooling2D()(x)
 
 x = QConv2DBatchnorm(
-    args.filter1, #default 8,
+    args.filter1,
     kernel_size=(3, 3),
     strides=(1, 1),
     padding='same',
-    kernel_quantizer="quantized_bits(bits=9,integer=4,alpha=1)", #bilangan kedua (0) integer bit tidak termasuk sign bit
-    bias_quantizer="quantized_bits(bits=9,integer=4,alpha=1)",
+    kernel_quantizer="quantized_bits(bits=12,integer=2,alpha=1)", #bilangan kedua (0) integer bit tidak termasuk sign bit
+    bias_quantizer="quantized_bits(bits=12,integer=4,alpha=1)",
     kernel_initializer='lecun_uniform',
+    kernel_regularizer=l2(1e-4),
     use_bias=True,
     name='fused_convbn_1a'
 )(x)
-x = QActivation('quantized_relu(bits=9,integer=4)', name='conv_act_1a')(x)
+x = QActivation('quantized_relu(bits=10,integer=2)', name='conv_act_1a')(x)
 x = MaxPooling2D()(x)
 
 x = QConv2DBatchnorm(
-    args.filter1, #default 8,
+    args.filter1,
     kernel_size=(3, 3),
     strides=(1, 1),
     padding='same',
-    kernel_quantizer="quantized_bits(bits=9,integer=4,alpha=1)", #bilangan kedua (0) integer bit tidak termasuk sign bit
-    bias_quantizer="quantized_bits(bits=9,integer=4,alpha=1)",
+    kernel_quantizer="quantized_bits(bits=12,integer=2,alpha=1)", #bilangan kedua (0) integer bit tidak termasuk sign bit
+    bias_quantizer="quantized_bits(bits=12,integer=4,alpha=1)",
     kernel_initializer='lecun_uniform',
+    kernel_regularizer=l2(1e-4),
     use_bias=True,
     name='fused_convbn_1b'
 )(x)
-x = QActivation('quantized_relu(bits=9,integer=4)', name='conv_act_1b')(x)
+x = QActivation('quantized_relu(bits=10,integer=2)', name='conv_act_1b')(x)
 x = MaxPooling2D()(x)
 
 x = QConv2DBatchnorm(
-    args.filter2, #default 3,
+    args.filter2,
     kernel_size=(3, 3),
     strides=(1, 1),
     padding='same',
-    kernel_quantizer="quantized_bits(bits=9,integer=4,alpha=1)",
-    bias_quantizer="quantized_bits(bits=9,integer=4,alpha=1)",
+    kernel_quantizer="quantized_bits(bits=12,integer=2,alpha=1)",
+    bias_quantizer="quantized_bits(bits=12,integer=4,alpha=1)",
     kernel_initializer='lecun_uniform',
+    kernel_regularizer=l2(1e-4),
     use_bias=True,
     name='fused_convbn_2'
 )(x) # fused_convbn_2 menghasilkan output dengan shape (batch, h, w, filters)
-x = QActivation('quantized_relu(bits=9,integer=4)', name='conv_act_2')(x)
-x = MaxPooling2D(name='conv_maxpool')(x)
+x = QActivation('quantized_relu(bits=12,integer=3)', name='conv_act_2')(x)
+# x = MaxPooling2D(name='conv_maxpool')(x) #tanpa maxpooling cifar10
+# nilai/channel. MaxPool sebelum GAP tidak diperlukan.
+# Hilang informasi: Dengan 3 pool, fitur jadi 4x4. Pool lagi ke 2x2 lalu GAP berarti merata-rata 4 elemen, bukan 16 elemen. Statistik jadi lebih bising dan sinyal gradien lebih lemah.
+# Robust terhadap kuantisasi/pruning: GAP pada 4x4 memberi averaging lebih besar → lebih stabil terhadap noise quant/pruning dibanding 2x2.
+# Biaya hampir nol: Tidak ada layer konvolusi setelahnya, jadi menghapus MaxPool terakhir tidak menambah MAC konvolusi. Hanya menambah sedikit elemen yang dirata-rata oleh GAP.
+
 # GlobalAveragePooling2D merata-ratakan setiap channel (filter) menjadi satu nilai, sehingga output-nya menjadi (batch, filters).
 x = tf.keras.layers.GlobalAveragePooling2D(name='conv_globalavg')(x)
 
 y = QDense(
-    args.filter3, #default 8,
-    kernel_quantizer="quantized_bits(bits=9,integer=4,alpha=1)",
+    args.filter3,
+    kernel_quantizer="quantized_bits(bits=12,integer=2,alpha=1)",
+    kernel_regularizer=l2(1e-4),
     use_bias=False,
     name='dense_1'
 )(x)
@@ -161,12 +196,14 @@ y = BatchNormalization(
     name='bn_3'
 )(y)
 y = QActivation(
-    'quantized_relu(9,2)',
+    'quantized_relu(12,3)',
     name='dense_act_0'
 )(y)
+y = Dropout(0.3, name='dense_dropout_0')(y)
 outputs = QDense(
-    args.filter4, #default 3,
-    kernel_quantizer="quantized_bits(bits=8,integer=4,alpha=1)",
+    args.filter4, #default 10, cifar10 ada 10 kelas
+    kernel_quantizer="quantized_bits(bits=8,integer=3,alpha=1)",
+    kernel_regularizer=l2(1e-4),
     name='dense_2'
 )(y)
 model_full_unpruned = Model(inputs, outputs, name="model_full")
@@ -194,15 +231,17 @@ for target in ([
     full_model
 ]):
     target.compile(
-        optimizer=tf.keras.optimizers.Adam(0.001),
+        optimizer=tf.keras.optimizers.Adam(0.002),
         # loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True), #bila one-hot enc
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True), #label kita 0 dan 1
+        # loss=make_sparse_cce_with_label_smoothing(0.05, num_classes=args.filter4),
         metrics=['accuracy']
     )
 
 callbacks = [
     EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True, verbose=1),
-    ReduceLROnPlateau(monitor='val_loss', factor=0.75, patience=4, min_lr=1e-6, verbose=1),
+    ReduceLROnPlateau(monitor='val_accuracy', factor=0.5, patience=4, min_lr=1e-6, verbose=1),
+    # ReduceLROnPlateau(monitor='val_loss', factor=0.75, patience=4, min_lr=1e-6, verbose=1),
     pruning_callbacks.UpdatePruningStep(),  # Uncomment jika menggunakan pruning
 ]
 """
@@ -224,6 +263,36 @@ full_model.fit(
 
 
 
+def build_inference_no_aug_softcoded(trained_model):
+    # Tentukan layer apa saja yang ingin Anda LEWATI
+    # Gunakan set ({}) untuk pencarian yang lebih cepat
+    layers_to_skip = {
+        'aug',                # Layer augmentasi
+        'dense_dropout_0',    # Layer dropout
+        'input_1'             # Layer input asli (karena kita akan buat yang baru)
+    }
+
+    # Mulai membangun graf baru
+    inp = tf.keras.Input(shape=trained_model.input_shape[1:], name='input_1')
+    x = inp
+
+    # Iterasi semua layer di model asli secara dinamis
+    for layer in trained_model.layers:
+        # Jika nama layer ada di daftar skip, abaikan layer tersebut
+        if layer.name in layers_to_skip:
+            continue
+            
+        # Jika bukan layer yang di-skip, sambungkan ke graf baru
+        x = layer(x)
+
+    # Buat model baru dari input baru dan output graf yang sudah dimodifikasi
+    return tf.keras.Model(inp, x, name='model_full_no_aug_softcoded')
+
+# --- Cara Pakai ---
+# Asumsikan 'full_model' sudah ada dan terdefinisi
+
+full_model = build_inference_no_aug_softcoded(full_model)
+
 # --- Testing ---
 X_test, Y_test = [], []
 for x, y in test_data.unbatch().take(10000):  # ambil sebagian jika dataset besar
@@ -242,9 +311,15 @@ print(f"Akurasi model : {acc * 100:.2f}%")
 
 
 
-np.save('npy/X_test_main.npy', X_test)
-np.save('npy/Y_test_main.npy', Y_test)
-np.save('npy/dense_out_logits_main.npy', dense_out_logits)
+np.save('npy/c10_X_test_main.npy', X_test)
+np.save('npy/c10_Y_test_main.npy', Y_test)
+np.save('npy/c10_dense_out_logits_main.npy', dense_out_logits)
+
+np.save(f'keras/{suffix}/X_test_main.npy', X_test)
+np.save(f'keras/{suffix}/Y_test_main.npy', Y_test)
+np.save(f'keras/{suffix}/dense_out_logits_main.npy', dense_out_logits)
+
+
 print("data test tersimpan")
 
 full_model.save(model_full_name)

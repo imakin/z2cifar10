@@ -4,7 +4,7 @@ from os import uname
 from os import listdir
 from os import makedirs
 from os.path import realpath, basename
-os = Abstract();os.path=Abstract();
+os = Abstract();os.path=Abstract()
 os.path.realpath = realpath
 os.path.basename = basename
 
@@ -104,7 +104,7 @@ def clone_with_weights(src_model):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--sambung', action='store_true')
+parser.add_argument('--sambung', action='store_true') # tidak dipakai lagi.
 parser.add_argument('--input', type=str, required=False, default='')
 parser.add_argument('--output', type=str, required=False, default='')
 parser.add_argument('--minim', action='store_true', help='bikin vitis project minimal')
@@ -114,54 +114,35 @@ args = parser.parse_args()
 
 input_modelfull = args.input
 outputfoldername = args.output
-sambung = args.sambung
 
 print(f'quick usage untuk 1 model full:')
-print(f'`python {os.path.basename(__file__)} --sambung --input=[filename model full] --output=[output folder name]`')
-
-if input_modelfull and outputfoldername:
-    sambung = True
+print(f'`python {os.path.basename(__file__)} --input=[filename model full] --output=[output folder name]`')
 
 # ----- Load model and test data -----
 kerases_folder = listdir('keras/')
 kerases_folder.sort()
 kerases_folder = [f'keras/{f}' for f in kerases_folder]
-print("modelA akan disambung ke modelB")
+print("pilih model")
 choices = []
-for i in range(len(kerases_folder)):
-    print(f'{kerases_folder[i]}:')
-    kerases = listdir(kerases_folder[i])
-    kerases = [f'{kerases_folder[i]}/{f}' for f in kerases]
-    for j in range(len(kerases)):
-        fullfile = f'{kerases[j]}'
-        print(f'{len(choices)}: {fullfile}')
-        choices.append(fullfile)
-if outputfoldername:
-    sambung = False
-else:
-    print("pakai 2 model yang di-sambung? y/n\n(n=pakai 1 model full)")
-    sambung = (input()=='y')
 
-if (sambung):
-    print('pilih modelA: [1/2/3..]')
-    keras_pick = int(input())
-    model_filenameA = f'{choices[keras_pick]}'
-    print('pilih modelB: [1/2/3..]')
-    keras_pick = int(input())
-    model_filenameB = f'{choices[keras_pick]}'
 
-    print(f'load: {model_filenameA}')
-    model_A_conv = tf.keras.models.load_model(model_filenameA, custom_objects=custom_objects, compile=False)
-    model_B_dense = tf.keras.models.load_model(model_filenameB, custom_objects=custom_objects,compile=False)
+print('pilih model FULL: [1/2/3..]')
+if input_modelfull:
+    model_filenameFULL = input_modelfull
 else:
-    print('pilih model FULL: [1/2/3..]')
-    if input_modelfull:
-        model_filenameFULL = input_modelfull
-    else:
-        keras_pick = int(input())
-        model_filenameFULL = f'{choices[keras_pick]}'
-    print(f'load: {model_filenameFULL}')
-    model_full = tf.keras.models.load_model(model_filenameFULL, custom_objects=custom_objects, compile=False)
+    for i in range(len(kerases_folder)):
+        print(f'{kerases_folder[i]}:')
+        kerases = listdir(kerases_folder[i])
+        kerases = [f'{kerases_folder[i]}/{f}' for f in kerases]
+        for j in range(len(kerases)):
+            fullfile = f'{kerases[j]}'
+            if fullfile.endswith('.keras'):
+                print(f'{len(choices)}: {fullfile}')
+                choices.append(fullfile)
+    keras_pick = int(input())
+    model_filenameFULL = f'{choices[keras_pick]}'
+print(f'load: {model_filenameFULL}')
+model_full = tf.keras.models.load_model(model_filenameFULL, custom_objects=custom_objects, compile=False)
 
 print('output foldername:')
 if outputfoldername:
@@ -176,18 +157,10 @@ makedirs(hls_folder, exist_ok=True)
 shutil.copy(os.path.realpath(argv[0]), f'{hls_folder}/{os.path.basename(__file__)}')
 
 
-if args.c10 or outputfoldername.startswith('mc10'):
-    print("using cifar10 dataset")
-    X_test = np.load('npy/c10_X_test_main.npy')
-    Y_test = np.load('npy/c10_Y_test_main.npy')
-    batch_size = 256
-    n_classes = 10
-else:
-    print("using cifar2 dataset")
-    X_test = np.load('npy/c2_X_test_main.npy')
-    Y_test = np.load('npy/c2_Y_test_main.npy')
-    batch_size = 128
-    n_classes = 2
+print("using cifar10 dataset")
+X_test = np.load('npy/c10_X_test_main.npy')
+Y_test = np.load('npy/c10_Y_test_main.npy')
+batch_size = 256
 
 try:
     true_labels = np.argmax(Y_test, axis=1)
@@ -195,106 +168,15 @@ except np.exceptions.AxisError:
     # Jika Y_test adalah 1D array, gunakan langsung
     true_labels = Y_test
 
-if sambung:
-    model_A_conv_pruned = strip_pruning(model_A_conv)
-    model_B_dense_pruned = strip_pruning(model_B_dense)
-    model_target = model_A_conv_pruned
-    # clone untuk graph bersih
-    with custom_object_scope(custom_objects):
-        model_target = tf.keras.models.clone_model(model_A_conv_pruned)
-        model_target.set_weights(model_A_conv_pruned.get_weights())
-else:
-    print("Trying to strip model_full")
-    model_full_source = strip_pruning(model_full)
-    model_full_source.summary()
-    print("that was model_full_source summary")
-    # model_target = model_full_source
-    print("Cloning model to a clean graph...")
-    with custom_object_scope(custom_objects):
-        model_target = tf.keras.models.clone_model(model_full_source)
-        model_target.set_weights(model_full_source.get_weights())
-    """
-    # Temukan layer QDense dan BatchNormalization yang berurutan
-    print("Melakukan folding BatchNormalization ke Dense layer...")
-    dense_to_fold = model_full_source.get_layer('dense_1')
-    bn_to_fold = model_full_source.get_layer('bn_3')
-
-    # fold layer dense+bn
-    folded_dense = fold_dense_bn(dense_to_fold, bn_to_fold)
-
-    # membangun model baru dari awal, layer per layer,
-    # hanya menyalin konfigurasi dan bobot. Ini menjamin grafik yang bersih.
-    print("Membangun ulang model secara penuh untuk memastikan grafik yang bersih...")
-
-    def get_new_layer(old_layer, input_shape=None):
-        # Helper untuk membuat layer baru dari layer lama
-        config = old_layer.get_config()
-        new_layer = old_layer.__class__.from_config(config)
-        # Build layer jika perlu sebelum set_weights
-        if old_layer.get_weights():
-            shape = input_shape
-            if shape is None:
-                try:
-                    shape = old_layer.input_shape
-                except AttributeError:
-                    shape = None
-            if shape is not None:
-                # Buat dummy input untuk memanggil layer (agar weights terinisialisasi)
-                # shape: (batch, ...) -> batch=1
-                dummy_shape = [1] + list(shape[1:])
-                dummy_input = tf.zeros(dummy_shape)
-                try:
-                    new_layer(dummy_input)
-                except Exception as e:
-                    print(f"Warning: gagal memanggil {old_layer.name} dengan dummy input: {e}")
-        if old_layer.get_weights():
-            new_layer.set_weights(old_layer.get_weights())
-        return new_layer
-
-    # 1. Buat input baru
-    new_input = tf.keras.layers.Input(shape=model_full_source.input_shape[1:], name="input_1")
-    x = new_input
-
-    # 2. Bangun kembali semua layer SEBELUM bagian yang di-fold
-    layers_to_rebuild_head = [
-        'input_quant', 'fused_convbn_0', 'conv_act_0', 'max_pooling2d',
-        'fused_convbn_1a', 'conv_act_1a', 'max_pooling2d_1',
-        'fused_convbn_1b', 'conv_act_1b', 'max_pooling2d_2',
-        'fused_convbn_2',
-        'conv_act_2',
-        # 'conv_maxpool',
-        'conv_globalavg'
-    ]
-    for layer_name in layers_to_rebuild_head:
-        try:
-            old_layer = model_full_source.get_layer(layer_name)
-            new_layer = get_new_layer(old_layer, input_shape=x.shape)
-            x = new_layer(x)
-        except:
-            print(f"layer {layer_name} tidak ditemukan, dilewati.")
-
-    # 3. Masukkan layer yang sudah di-fold
-    # `folded_dense` sudah merupakan layer baru dengan bobot yang benar
-    x = folded_dense(x)
-
-    # 4. Bangun kembali semua layer SETELAH bagian yang di-fold
-    layers_to_rebuild_tail = [
-        'dense_act_0', 'dense_2'
-    ]
-    for layer_name in layers_to_rebuild_tail:
-        new_layer = get_new_layer(model_full_source.get_layer(layer_name))
-        x = new_layer(x)
-
-    # 5. Output akhir adalah tensor 'x' dari layer terakhir
-    outputs = x
-
-    # 6. Buat model final dari input dan output yang baru
-    model_target = Model(inputs=new_input, outputs=outputs, name="model_folded")
-    print("Model baru 'model_folded' telah dibuat.")
-    model_target.summary()
-    print('strip pruning')
-    model_target = strip_pruning(model_target)
-    """
+print("Trying to strip model_full")
+model_full_source = strip_pruning(model_full)
+model_full_source.summary()
+print("that was model_full_source summary")
+# model_target = model_full_source
+print("Cloning model to a clean graph...")
+with custom_object_scope(custom_objects):
+    model_target = tf.keras.models.clone_model(model_full_source)
+    model_target.set_weights(model_full_source.get_weights())
 
 # Sanity check tapi pakai forward pass, bukan membangun sub-Model
 try:
@@ -324,25 +206,11 @@ for ln in hls_config['LayerName']:
 # input()
 hls_config['Model']['Strategy'] = 'Resource'
 hls_config['Model']['ReuseFactor'] = 60
-# hls_config['Model']['Precision'] = 'ap_fixed<16,6>' #bilangan kedua untuk integer bit termasuk sign bit
-
-# hls_config['LayerName']['fused_convbn_1']['Precision']['weight'] = 'ap_fixed<12,1>'
-# hls_config['LayerName']['fused_convbn_1']['Precision']['bias'] = 'ap_fixed<12,1>'
-# hls_config['LayerName']['fused_convbn_1']['Precision']['result'] = 'ap_fixed<8,1>'  # output 
-# hls_config['LayerName']['fused_convbn_2']['Precision']['weight'] = 'ap_fixed<12,1>'
-# hls_config['LayerName']['fused_convbn_2']['Precision']['bias'] = 'ap_fixed<12,1>'
-# hls_config['LayerName']['fused_convbn_2']['Precision']['result'] = 'ap_fixed<8,1>'  # output 
-# hls_config['LayerName']['fused_convbn_2']['implementation'] = 'dsp'  # 
-# hls_config['LayerName']['fused_convbn_2']['directive'] = 'BIND_OP op=mul impl=dsp'  # #pragma HLS BIND_OP op=mul impl=dsp, untuk layerke2 dicoba, bisakah pakai dsp
-
-# for layer_name in hls_config['LayerName']:
-#     if 'dense' in layer_name:
-#         hls_config['LayerName'][layer_name]['Precision'] = 'ap_fixed<16,8>'
-
-        # hls_config['LayerName'][layer_name]['Precision']['weight'] = 'ap_fixed<16,7>'
-        # hls_config['LayerName'][layer_name]['Precision']['bias'] = 'ap_fixed<16,7>'
-        # hls_config['LayerName'][layer_name]['Precision']['result'] = 'ap_fixed<8,2>'  # output 
-# hls_config['LayerName']['dense_2']['Precision']['result'] = 'ap_fixed<8,4>'  # output 
+hls_config['LayerName']['fused_convbn_0']['ReuseFactor'] = 432
+hls_config['LayerName']['fused_convbn_1a']['ReuseFactor'] = 9216
+hls_config['LayerName']['fused_convbn_1b']['ReuseFactor'] = 36864
+hls_config['LayerName']['fused_convbn_2']['ReuseFactor'] = 73728
+hls_config['LayerName']['dense_2']['ReuseFactor'] = 640
 
 hls_model = hls4ml.converters.convert_from_keras_model(
     model_target,
@@ -399,6 +267,11 @@ del hls_model
 hls_config = hls4ml.utils.config_from_keras_model(model_target, granularity='name')
 hls_config['Model']['Strategy'] = 'Resource'
 hls_config['Model']['ReuseFactor'] = 60
+hls_config['LayerName']['fused_convbn_0']['ReuseFactor'] = 432
+hls_config['LayerName']['fused_convbn_1a']['ReuseFactor'] = 9216
+hls_config['LayerName']['fused_convbn_1b']['ReuseFactor'] = 36864
+hls_config['LayerName']['fused_convbn_2']['ReuseFactor'] = 73728
+hls_config['LayerName']['dense_2']['ReuseFactor'] = 640
 # JANGAN set Trace=True
 
 hls_model = hls4ml.converters.convert_from_keras_model(
@@ -418,14 +291,30 @@ hls_model.compile()
 
 print("test inferensi pada model hls")
 # ----- Evaluasi akurasi HLS model -----
-# logits_hls = hls_model.predict(np.ascontiguousarray(X_test))
-if sambung:
-    # Inference: FPGA (PL) part
-    conv_out = hls_model.predict(np.ascontiguousarray(X_test))
-    # Inference: CPU (PS) part
-    logits = model_B_dense_pruned.predict(conv_out)
-else:
-    logits = hls_model.predict(np.ascontiguousarray(X_test))
+chunk = 500
+n = X_test.shape[0]
+print(f"Predict in chunks of {chunk} (total {n})")
+
+# Single HLS model
+logits_chunks = []
+chunk_times = []
+start_total = time.perf_counter()
+for start in range(0, n, chunk):
+    end = min(start + chunk, n)
+    print(f"{end:5d}", end="")
+    t0 = time.perf_counter()
+    x_ch = np.ascontiguousarray(X_test[start:end]).astype(np.float32)
+    log_ch = hls_model.predict(x_ch)
+    dt = time.perf_counter() - t0
+    chunk_times.append(dt)
+    print(f"  {dt*1000:.1f} ms")
+    logits_chunks.append(log_ch)
+logits = np.concatenate(logits_chunks, axis=0)
+
+total_time = time.perf_counter() - start_total
+avg_time = (sum(chunk_times) / len(chunk_times)) if chunk_times else 0.0
+ms_per_img = (total_time / max(n, 1)) * 1000.0
+print(f"Total inferensi: {total_time:.3f} s | Rata2/chunk: {avg_time:.3f} s | Throughput: {n/total_time:.1f} img/s | {ms_per_img:.3f} ms/img")
 
 probs_hls = tf.nn.softmax(logits).numpy()
 try:
@@ -436,9 +325,7 @@ except np.exceptions.AxisError:
 hls_acc = accuracy_score(true_labels, pred_labels_hls)
 np.save('npy/y_hlsmodel.npy',pred_labels_hls)
 print(f"Akurasi simulasi HLS: {hls_acc * 100:.2f}%")
-print("lanjut dalam 5 detik..")
-l = 'y'
-time.sleep(5)
+print("lanjut..")
 if args.minim:
     print("Membuat Vitis project minimal")
     hls_model.build(csim=False, synth=False, vsynth=False, export=False, cosim=False)
