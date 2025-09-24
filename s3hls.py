@@ -18,6 +18,9 @@ parser.add_argument('--name', type=str, required=True, default=None)
 args = parser.parse_args()
 
 target = args.name
+c10 = True
+if target.startswith('mc2'):
+    c10 = False
 
 # make sure chdir ke file ini
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -29,14 +32,19 @@ copy(f'hls_output/mc2hc6/project.tcl', f'hls_output/{target}/project.tcl')
 # copy "hls_output/mc2hc6/tb_data/X_test2.npy" ke "hls_output/{target}/tb_data/X_test2.npy"
 copy(f'hls_output/mc2hc6/tb_data/X_test2.npy', f'hls_output/{target}/tb_data/X_test2.npy')
 
-# copy "hls_output/mc2hc6/firmware/tb_mc2h_axis64.cpp" ke "hls_output/{target}/firmware/tb_mc2h_axis64.cpp"
-copy(f'hls_output/mc2hc6/firmware/tb_mc2h_axis64.cpp', f'hls_output/{target}/firmware/tb_mc2h_axis64.cpp')
+
+specific_source = "mc2hc6"
+if c10:
+    specific_source = "mc10c8"
+
+# copy "hls_output/{}/firmware/tb_mc2h_axis64.cpp" ke "hls_output/{target}/firmware/tb_mc2h_axis64.cpp"
+copy(f'hls_output/{specific_source}/firmware/tb_mc2h_axis64.cpp', f'hls_output/{target}/firmware/tb_mc2h_axis64.cpp')
 
 # copy "hls_output/mc2hc6/firmware/mc2h_axis_wrapper.h" ke "hls_output/{target}/firmware/mc2h_axis_wrapper.h"
 copy(f'hls_output/mc2hc6/firmware/mc2h_axis_wrapper.h', f'hls_output/{target}/firmware/mc2h_axis_wrapper.h')
 
-# copy "hls_output/mc2hc6/firmware/mc2h_axis_wrapper.cpp" ke "hls_output/{target}/firmware/mc2h_axis_wrapper.cpp"
-copy(f'hls_output/mc2hc6/firmware/mc2h_axis_wrapper.cpp', f'hls_output/{target}/firmware/mc2h_axis_wrapper.cpp')
+# copy "hls_output/{}/firmware/mc2h_axis_wrapper.cpp" ke "hls_output/{target}/firmware/mc2h_axis_wrapper.cpp"
+copy(f'hls_output/{specific_source}/firmware/mc2h_axis_wrapper.cpp', f'hls_output/{target}/firmware/mc2h_axis_wrapper.cpp')
 
 # edit "hls_output/{target}/firmware/parameters.h",
 # insert di baris ketiga f'#define WEIGHTS_DIR "{BASE_DIR}/hls_output/{target}/firmware/weights"'
