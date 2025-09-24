@@ -24,14 +24,21 @@ from sys import argv
 parser = argparse.ArgumentParser()
 parser.add_argument('--name', type=str, required=False, default=None)
 filterdefaults = [32,64,128,64,10]
-prunedefaults = [0.1, 0.1, 0.1, 0.2, 0.1]
+prunedefaults = [0.0, 0.0, 0.0, 0.0, 0.0]
 for x in enumerate(filterdefaults):
     i = x[0]
     banyak_filter = x[1]
     parser.add_argument(f'--filter{i}', type=int, required=False, default=banyak_filter)
     parser.add_argument(f'--prune{i}', type=float, required=False, default=prunedefaults[i])
 
+parser.add_argument(f'--filter1a', type=int, required=False, default=0)
+parser.add_argument(f'--filter1b', type=int, required=False, default=0)
+
 args = parser.parse_args()
+if args.filter1a==0:
+    args.filter1a = args.filter1
+if args.filter1b==0:
+    args.filter1b = args.filter1
 for k, v in vars(args).items():
     print(f"{k}: {v}")
 
@@ -130,11 +137,11 @@ x = QConv2DBatchnorm(
     use_bias=True,
     name='fused_convbn_0'
 )(x)
-x = QActivation('quantized_relu(bits=10,integer=2)', name='conv_act_0')(x)
+x = QActivation('quantized_relu(bits=12,integer=2)', name='conv_act_0')(x)
 x = MaxPooling2D()(x)
 
 x = QConv2DBatchnorm(
-    args.filter1,
+    args.filter1a,
     kernel_size=(3, 3),
     strides=(1, 1),
     padding='same',
@@ -145,11 +152,11 @@ x = QConv2DBatchnorm(
     use_bias=True,
     name='fused_convbn_1a'
 )(x)
-x = QActivation('quantized_relu(bits=10,integer=2)', name='conv_act_1a')(x)
+x = QActivation('quantized_relu(bits=12,integer=2)', name='conv_act_1a')(x)
 x = MaxPooling2D()(x)
 
 x = QConv2DBatchnorm(
-    args.filter1,
+    args.filter1b,
     kernel_size=(3, 3),
     strides=(1, 1),
     padding='same',
@@ -199,7 +206,7 @@ y = QActivation(
     'quantized_relu(12,3)',
     name='dense_act_0'
 )(y)
-y = Dropout(0.3, name='dense_dropout_0')(y)
+y = Dropout(0.1, name='dense_dropout_0')(y)
 outputs = QDense(
     args.filter4, #default 10, cifar10 ada 10 kelas
     kernel_quantizer="quantized_bits(bits=8,integer=3,alpha=1)",
@@ -239,7 +246,7 @@ for target in ([
     )
 
 callbacks = [
-    EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True, verbose=1),
+    EarlyStopping(monitor='val_loss', patience=12, restore_best_weights=True, verbose=1),
     ReduceLROnPlateau(monitor='val_accuracy', factor=0.5, patience=4, min_lr=1e-6, verbose=1),
     # ReduceLROnPlateau(monitor='val_loss', factor=0.75, patience=4, min_lr=1e-6, verbose=1),
     pruning_callbacks.UpdatePruningStep(),  # Uncomment jika menggunakan pruning
@@ -254,7 +261,7 @@ Fit bebarengan:
 """
 full_model.fit(
     train_data,
-    epochs=50,
+    epochs=120,
     verbose=2,
     validation_data=val_data,
     callbacks=callbacks
@@ -313,10 +320,10 @@ print(f"Akurasi model : {acc * 100:.2f}%")
 
 np.save('npy/c10_X_test_main.npy', X_test)
 np.save('npy/c10_Y_test_main.npy', Y_test)
-np.save('npy/c10_dense_out_logits_main.npy', dense_out_logits)
+# np.save('npy/c10_dense_out_logits_main.npy', dense_out_logits)
 
-np.save(f'keras/{suffix}/X_test_main.npy', X_test)
-np.save(f'keras/{suffix}/Y_test_main.npy', Y_test)
+# np.save(f'keras/{suffix}/X_test_main.npy', X_test)
+# np.save(f'keras/{suffix}/Y_test_main.npy', Y_test)
 np.save(f'keras/{suffix}/dense_out_logits_main.npy', dense_out_logits)
 
 
