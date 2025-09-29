@@ -211,6 +211,9 @@ hls_config['LayerName']['fused_convbn_1a']['ReuseFactor'] = 9216
 hls_config['LayerName']['fused_convbn_1b']['ReuseFactor'] = 36864
 hls_config['LayerName']['fused_convbn_2']['ReuseFactor'] = 73728
 hls_config['LayerName']['dense_2']['ReuseFactor'] = 640
+hls_config['LayerName']['dense_2']['Precision']['result'] = 'ap_fixed<16,6>'
+hls_config['Model']['Precision']['default'] = 'ap_fixed<16,6>'
+hls_config['Model']['Precision']['result'] = 'ap_fixed<16,6>'
 
 hls_model = hls4ml.converters.convert_from_keras_model(
     model_target,
@@ -243,7 +246,7 @@ else:
         
         # Set timeout 180 detik (3 menit)
         signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(180)
+        signal.alarm(60*10)
         
         # Batasi jumlah sample untuk profiling
         # Hanya n sample pertama
@@ -268,10 +271,13 @@ hls_config = hls4ml.utils.config_from_keras_model(model_target, granularity='nam
 hls_config['Model']['Strategy'] = 'Resource'
 hls_config['Model']['ReuseFactor'] = 60
 hls_config['LayerName']['fused_convbn_0']['ReuseFactor'] = 432
-hls_config['LayerName']['fused_convbn_1a']['ReuseFactor'] = 9216
-hls_config['LayerName']['fused_convbn_1b']['ReuseFactor'] = 36864
-hls_config['LayerName']['fused_convbn_2']['ReuseFactor'] = 73728
+hls_config['LayerName']['fused_convbn_1a']['ReuseFactor'] = 432 #9216
+hls_config['LayerName']['fused_convbn_1b']['ReuseFactor'] = 432 #36864
+hls_config['LayerName']['fused_convbn_2']['ReuseFactor'] = 432 #73728
 hls_config['LayerName']['dense_2']['ReuseFactor'] = 640
+hls_config['LayerName']['dense_2']['Precision']['result'] = 'ap_fixed<16,6>'
+hls_config['Model']['Precision']['default'] = 'ap_fixed<16,6>'
+hls_config['Model']['Precision']['result'] = 'ap_fixed<16,6>'
 # JANGAN set Trace=True
 
 hls_model = hls4ml.converters.convert_from_keras_model(
@@ -285,6 +291,7 @@ hls_model = hls4ml.converters.convert_from_keras_model(
     interface='none'
 )
 hls_model.compile()
+hls4ml.utils.plot_model(hls_model, show_shapes=True, show_precision=True, to_file=f"{plot_output}.2.png")
 
 
 
@@ -325,6 +332,9 @@ except np.exceptions.AxisError:
 hls_acc = accuracy_score(true_labels, pred_labels_hls)
 np.save('npy/y_hlsmodel.npy',pred_labels_hls)
 print(f"Akurasi simulasi HLS: {hls_acc * 100:.2f}%")
+with open(f"hls_output/{outputfoldername}/acc_{hls_acc * 100:.2f}.txt", 'w') as f:
+    f.write(f"Akurasi simulasi HLS: {hls_acc * 100:.2f}%\n")
+    f.write(f"Total inferensi: {total_time:.3f} s | Rata2/chunk: {avg_time:.3f} s | Throughput: {n/total_time:.1f} img/s | {ms_per_img:.3f} ms/img\n")
 print("lanjut..")
 if args.minim:
     print("Membuat Vitis project minimal")
