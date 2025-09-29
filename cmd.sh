@@ -49,6 +49,92 @@
 # python s1modelc10.py --name mc10c6 --filter0 8 --filter1 32 --filter2 64 --filter3 8
 # python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c6/main_full.keras --output=mc10c6 --minim
 
-python s1modelc10.py --name mc10c7 --filter0 8 --filter1 28 --filter2 54 --filter3 7
-python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c7/main_full.keras --output=mc10c7 --minim
+# python s1modelc10.py --name mc10c7 --filter0 8 --filter1 28 --filter2 54 --filter3 7
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c7/main_full.keras --output=mc10c7 --minim
+
+# python s1modelc10.py --name mc10c8 --filter0 8 --filter1 20 --filter2 48 --filter3 7
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c8/main_full.keras --output=mc10c8 --minim
+# python s3hls.py --name mc10c8
+
+# python s1modelc10.py --name mc10c9 --filter0 12 --filter1a 24 --filter1b 32 --filter2 64 --filter3 32
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c9/main_full.keras --output=mc10c9 --minim
+# python s3hls.py --name mc10c9
+
+# python s1modelc10.py --name mc10c10 --filter0 12 --filter1a 24 --filter1b 32 --filter2 48 --filter3 24
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c10/main_full.keras --output=mc10c10 --minim
+# python s3hls.py --name mc10c10
+
+# python s1modelc10.py --name mc10c11 --filter0 12 --filter1a 24 --filter1b 32 --filter2 48 --filter3 24
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c11/main_full.keras --output=mc10c11 --minim
+# python s3hls.py --name mc10c11
+
+# python s1modelc10.py --name mc10c12 --filter0 11 --filter1a 22 --filter1b 28 --filter2 42 --filter3 20
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c12/main_full.keras --output=mc10c12 --minim
+# python s3hls.py --name mc10c12
+
+# python s1modelc10.py --name mc10c13 --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c13/main_full.keras --output=mc10c13 --minim
+# python s3hls.py --name mc10c13
+
+# python s1modelc10.py --name mc10c14 --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c14/main_full.keras --output=mc10c14 --minim --skip-
+# python s3hls.py --name mc10c14
+
+# python s1modelc10.py --name mc10c15 --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c15/main_full.keras --output=mc10c15 --minim --skip-
+# python s3hls.py --name mc10c15
+
+# python s1modelc10.py --name mc10c16 --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c16/main_full.keras --output=mc10c16 --minim --skip-profiling
+# python s3hls.py --name mc10c16
+
+# python s1modelc10.py --name mc10c17 --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c17/main_full.keras --output=mc10c17 --minim --skip-profiling
+# python s3hls.py --name mc10c17
+
+# python s1modelc10.py --name mc10c18 --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c18/main_full.keras --output=mc10c18 --minim --skip-profiling
+# python s3hls.py --name mc10c18
+
+# python s1modelc10.py --name mc10c19 --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c19/main_full.keras --output=mc10c19 --minim --skip-profiling
+# python s3hls.py --name mc10c19
+
+# python s1modelc10.py --name mc10c20 --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c20/main_full.keras --output=mc10c20 --minim --skip-profiling
+# python s3hls.py --name mc10c20
+
+# TARGET=mc10c21
+# python s1modelc10.py --name $TARGET --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/$TARGET/main_full.keras --output=$TARGET --minim --skip-profiling
+# python s3hls.py --name $TARGET
+
+# TARGET=mc10c22
+# python s1modelc10.py --name $TARGET --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/$TARGET/main_full.keras --output=$TARGET --minim --skip-profiling
+# python s3hls.py --name $TARGET
+
+# TARGET=mc10c23
+# python s1modelc10.py --name $TARGET --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/$TARGET/main_full.keras --output=$TARGET --minim --skip-profiling
+# python s3hls.py --name $TARGET
+
+# TARGET=mc10c24
+# # python s1modelc10.py --name $TARGET --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c23/main_full.keras --output=$TARGET --minim --skip-profiling
+# python s3hls.py --name $TARGET --novitis
+
+# TARGET=mc10c25
+# python s1modelc10.py --name $TARGET --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/{TARGET}/main_full.keras --output=$TARGET --minim --skip-profiling
+# python s3hls.py --name $TARGET --novitis
+
+TARGET=mc10c26
+# python s1modelc10.py --name $TARGET --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c23/main_full.keras --output=$TARGET --minim --skip-profiling
+python s3hls.py --name $TARGET
+# TARGET=mc10c26
+# python s1modelc10.py --name $TARGET --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/{TARGET}/main_full.keras --output=$TARGET --minim --skip-profiling
+# python s3hls.py --name $TARGET
 

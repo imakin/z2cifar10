@@ -24,8 +24,8 @@ custom_objects = {
 }
 
 model = tf.keras.models.load_model('main_full.keras', custom_objects=custom_objects, compile=True)
-X_test = np.load('X_test_main.npy')
-Y_test = np.load('Y_test_main.npy')
+X_test = np.load('../../npy/c10/X_test_main.npy')
+Y_test = np.load('../../npy/c10/Y_test_main.npy')
 output = model.predict(X_test[:20])
 labels = np.argmax(output, axis=1)
 
