@@ -175,7 +175,7 @@ x = QConv2DBatchnorm(
     kernel_size=(3, 3),
     strides=(1, 1),
     padding='same',
-    kernel_quantizer="quantized_bits(bits=12,integer=2,alpha=1)",
+    kernel_quantizer="quantized_bits(bits=9,integer=1,alpha=1)",
     bias_quantizer="quantized_bits(bits=12,integer=4,alpha=1)",
     kernel_initializer='lecun_uniform',
     kernel_regularizer=l2(1e-4),
@@ -209,7 +209,11 @@ y = QActivation(
 y = Dropout(0.1, name='dense_dropout_0')(y)
 outputs = QDense(
     args.filter4, #default 10, cifar10 ada 10 kelas
-    kernel_quantizer="quantized_bits(bits=8,integer=3,alpha=1)",
+    kernel_quantizer="quantized_bits(bits=16,integer=5,alpha=1)",
+    bias_quantizer="quantized_bits(bits=16,integer=5,alpha=1)",
+    # di qkeras, (bits=16, integer=12), 12 belum termasuk sign bit
+    # di hls4ml summary dan di C++. penulisan ap_fixed<25,13>
+    # berarti 25 bit total, 13 integer termasuk sign bit, sisanya fractional bit
     kernel_regularizer=l2(1e-4),
     name='dense_2'
 )(y)
