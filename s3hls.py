@@ -27,8 +27,6 @@ if target.startswith('mc2'):
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 os.chdir(BASE_DIR)
 
-# copy "hls_output/mc2hc6/project.tcl" ke "hls_output/{target}/project.tcl" dan replace
-copy(f'hls_output/mc2hc6/project.tcl', f'hls_output/{target}/project.tcl')
 
 
 
@@ -36,16 +34,10 @@ specific_source = "mc2hc6"
 if c10:
     specific_source = "mc10c8"
 
-# copy "hls_output/mc2hc6/tb_data/X_test2.npy" ke "hls_output/{target}/tb_data/X_test2.npy"
+copy(f'hls_output/{specific_source}/project.tcl', f'hls_output/{target}/project.tcl')
 copy(f'hls_output/{specific_source}/tb_data/X_test2.npy', f'hls_output/{target}/tb_data/X_test2.npy')
-
-# copy "hls_output/{}/firmware/tb_mc2h_axis64.cpp" ke "hls_output/{target}/firmware/tb_mc2h_axis64.cpp"
 copy(f'hls_output/{specific_source}/firmware/tb_mc2h_axis64.cpp', f'hls_output/{target}/firmware/tb_mc2h_axis64.cpp')
-
-# copy "hls_output/mc2hc6/firmware/mc2h_axis_wrapper.h" ke "hls_output/{target}/firmware/mc2h_axis_wrapper.h"
 copy(f'hls_output/{specific_source}/firmware/mc2h_axis_wrapper.h', f'hls_output/{target}/firmware/mc2h_axis_wrapper.h')
-
-# copy "hls_output/{}/firmware/mc2h_axis_wrapper.cpp" ke "hls_output/{target}/firmware/mc2h_axis_wrapper.cpp"
 copy(f'hls_output/{specific_source}/firmware/mc2h_axis_wrapper.cpp', f'hls_output/{target}/firmware/mc2h_axis_wrapper.cpp')
 
 # edit "hls_output/{target}/firmware/parameters.h",

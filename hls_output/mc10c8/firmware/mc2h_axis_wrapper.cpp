@@ -26,51 +26,54 @@ static void axis64_to_core_stream(hls::stream<axis64_t> &in64, hls::stream<input
     }
 }
 
+// static void core_stream_to_axis64(hls::stream<result_t> &core_out, hls::stream<axis64_t> &out64) {
+// #pragma HLS INLINE off
+//     // Core now produces 10-class output (result_t has 10 elements
+//     result_t res = core_out.read();
+
+//     // Pack 10x26 bits = 260 bits into 5x64-bit words (last 60 bits unused)
+//     ap_uint<260> packed = 0;
+//     for (int i = 0; i < 10; ++i) {
+//         // Sign-extend to 26 bits, then insert into packed
+//         ap_int<26> val = res[i].range(25, 0); // ap_fixed<26,13>
+//         packed.range((i+1)*26-1, i*26) = val;
+//     }
+
+//     // Send as 5 AXIS 64-bit beats
+//     for (int i = 0; i < 5; ++i) {
+//         axis64_t w;
+//         w.data = 0;
+//         w.keep = 0xFF;
+//         w.strb = 0xFF;
+//         w.last = (i == 4) ? 1 : 0;
+//         ap_uint<64> d = packed.range((i+1)*64-1, i*64);
+//         w.data = d;
+//         out64.write(w);
+//     }
+// }
+
+
+
+
 static void core_stream_to_axis64(hls::stream<result_t> &core_out, hls::stream<axis64_t> &out64) {
 #pragma HLS INLINE off
-    // Core now produces 10-class output (result_t has 10 elements, each 16 bit)
+    // Output: 10x16 bit (ap_fixed<16,6>) = 160 bit, send as 3x64 bit in 3 beats
     result_t res = core_out.read();
 
-    // Beat 1: res[0..3] (4x16=64 bit)
-    axis64_t w1;
-    w1.data = 0;
-    w1.keep = 0xFF; // all 8 bytes valid
-    w1.strb = 0xFF;
-    w1.last = 0;
-    ap_uint<64> d1 = 0;
-    d1.range(15, 0)   = res[0].range(15, 0);
-    d1.range(31, 16)  = res[1].range(15, 0);
-    d1.range(47, 32)  = res[2].range(15, 0);
-    d1.range(63, 48)  = res[3].range(15, 0);
-    w1.data = d1;
-    out64.write(w1);
-
-    // Beat 2: res[4..7]
-    axis64_t w2;
-    w2.data = 0;
-    w2.keep = 0xFF;
-    w2.strb = 0xFF;
-    w2.last = 0;
-    ap_uint<64> d2 = 0;
-    d2.range(15, 0)   = res[4].range(15, 0);
-    d2.range(31, 16)  = res[5].range(15, 0);
-    d2.range(47, 32)  = res[6].range(15, 0);
-    d2.range(63, 48)  = res[7].range(15, 0);
-    w2.data = d2;
-    out64.write(w2);
-
-    // Beat 3: res[8..9] (2x16=32 bit), rest zero
-    axis64_t w3;
-    w3.data = 0;
-    w3.keep = 0x0F; // lower 4 bytes valid (2x16=32 bit)
-    w3.strb = 0x0F;
-    w3.last = 1;
-    ap_uint<64> d3 = 0;
-    d3.range(15, 0)   = res[8].range(15, 0);
-    d3.range(31, 16)  = res[9].range(15, 0);
-    // d3.range(63, 32) = 0; // already zero
-    w3.data = d3;
-    out64.write(w3);
+    for (int beat=0; beat<3; beat++){
+        axis64_t w;
+        w.data = 0;
+        w.data.range(15,0)  = res[beat*4 +0].range(15,0);
+        w.data.range(31,16) = res[beat*4 +1].range(15,0);
+        if ((beat*4 +2) < 10) {
+            w.data.range(47,32) = res[beat*4 +2].range(15,0);
+            w.data.range(63,48) = res[beat*4 +3].range(15,0);
+        }
+        w.keep = 0xFF;
+        w.strb = 0xFF;
+        w.last = (beat >= 2) ? 1 : 0;
+        out64.write(w);
+    }
 }
 
 void mc2h_axis64(hls::stream<axis64_t> &in64, hls::stream<axis64_t> &out64) {
