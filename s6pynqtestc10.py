@@ -6,9 +6,11 @@ import time
 overlay = Overlay('paket/mc10/mc10c8.bit')
 # dma = overlay.axi_dma_0
 
-#x = QActivation('quantized_bits(bits=16,integer=0,alpha=1)', name='input_quant')(x)
-# 15 fraction, 1 sign
-quantization_scale = 1 << 15  #untuk input
+# Desain HLS menggunakan tipe input ap_fixed<16,6> => 6 bit integer (dengan sign) + 10 bit fraksi (Q6.10)
+# Jadi faktor kuantisasi yang benar adalah 2^10 = 1024, BUKAN 2^15. Penggunaan 2^15 (Q1.15) sebelumnya
+# menyebabkan hampir semua nilai menjenuh (saturate) ke +/- 31.999 pada hardware sehingga
+# output klasifikasi menjadi salah dan berulang.
+quantization_scale = 1 << 10  # Q6.10
 
 def test_load():
     x2 = np.load('paket/mc10/c10_X_test_main.npy').astype(np.float32) # shape (2, 32, 32, 3)
