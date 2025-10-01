@@ -33,12 +33,24 @@ for x in enumerate(filterdefaults):
 
 parser.add_argument(f'--filter1a', type=int, required=False, default=0)
 parser.add_argument(f'--filter1b', type=int, required=False, default=0)
+parser.add_argument(f'--filter1c', type=int, required=False, default=0)
 
+parser.add_argument(f'--prune1a', type=float, required=False, default=0.0)
+parser.add_argument(f'--prune1b', type=float, required=False, default=0.0)
+parser.add_argument(f'--prune1c', type=float, required=False, default=0.0)
+
+
+# layer 1c boleh diisi 0, yang artinya tidak ada layer 1c
 args = parser.parse_args()
 if args.filter1a==0:
     args.filter1a = args.filter1
 if args.filter1b==0:
     args.filter1b = args.filter1
+if args.prune1a==0.0:
+    args.prune1a = args.prune1
+if args.prune1b==0.0:
+    args.prune1b = args.prune1
+
 for k, v in vars(args).items():
     print(f"{k}: {v}")
 
@@ -169,6 +181,22 @@ x = QConv2DBatchnorm(
 )(x)
 x = QActivation('quantized_relu(bits=10,integer=2)', name='conv_act_1b')(x)
 x = MaxPooling2D()(x)
+
+if args.filter1c>0:
+    x = QConv2DBatchnorm(
+        args.filter1c,
+        kernel_size=(3, 3),
+        strides=(1, 1),
+        padding='same',
+        kernel_quantizer="quantized_bits(bits=12,integer=2,alpha=1)", #bilangan kedua (0) integer bit tidak termasuk sign bit
+        bias_quantizer="quantized_bits(bits=12,integer=4,alpha=1)",
+        kernel_initializer='lecun_uniform',
+        kernel_regularizer=l2(1e-4),
+        use_bias=True,
+        name='fused_convbn_1c'
+    )(x)
+    x = QActivation('quantized_relu(bits=10,integer=2)', name='conv_act_1c')(x)
+    x = MaxPooling2D()(x)
 
 x = QConv2DBatchnorm(
     args.filter2,
