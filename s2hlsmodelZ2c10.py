@@ -207,9 +207,9 @@ for ln in hls_config['LayerName']:
 hls_config['Model']['Strategy'] = 'Resource'
 hls_config['Model']['ReuseFactor'] = 60
 hls_config['LayerName']['fused_convbn_0']['ReuseFactor'] = 432
-hls_config['LayerName']['fused_convbn_1a']['ReuseFactor'] = 9216
-hls_config['LayerName']['fused_convbn_1b']['ReuseFactor'] = 36864
-hls_config['LayerName']['fused_convbn_2']['ReuseFactor'] = 73728
+hls_config['LayerName']['fused_convbn_1a']['ReuseFactor'] = 432 #9216
+hls_config['LayerName']['fused_convbn_1b']['ReuseFactor'] = 432 #36864
+hls_config['LayerName']['fused_convbn_2']['ReuseFactor'] = 432 #73728
 hls_config['LayerName']['dense_2']['ReuseFactor'] = 640
 hls_config['LayerName']['dense_2']['Precision']['result'] = 'ap_fixed<16,6>'
 hls_config['Model']['Precision']['default'] = 'ap_fixed<16,6>'
