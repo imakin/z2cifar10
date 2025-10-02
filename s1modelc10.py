@@ -17,7 +17,10 @@ from tensorflow_model_optimization.sparsity.keras import PolynomialDecay
 from qkeras import QActivation
 from qkeras import QDense, QConv2DBatchnorm
 
-from s0dataset import datasets
+try:
+    from s0dataset import datasets
+except ImportError:
+    from s0dataseth import datasets
 
 from sys import argv
 
