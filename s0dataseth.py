@@ -22,9 +22,9 @@ class Datasets():
         test_data = tfds.load(
             'cifar10', split='test', as_supervised=True, shuffle_files=True
         )
-        train_dataset = self.preprocess_dataset(train_data)
-        val_dataset = self.preprocess_dataset(val_data)
-        test_dataset = self.preprocess_dataset(test_data)
+        train_dataset = self.preprocess_dataset(train_data, training=True)
+        val_dataset = self.preprocess_dataset(val_data, training=False)
+        test_dataset = self.preprocess_dataset(test_data, training=False)
         return Dataset(train_dataset, test_dataset, val_dataset)
 
     def load_cifar2(self):
@@ -56,10 +56,14 @@ class Datasets():
         test_dataset = self.preprocess_cifar2_dataset(test_data, animal_labels)
         return Dataset(train_dataset, test_dataset, val_dataset)
 
-    def preprocess_dataset(self, ds):
-        batch_dimension = 1024
+    def preprocess_dataset(self, ds, training=False):
+        batch_dimension = 256
         ds = ds.map(lambda img, lbl: (tf.cast(img, tf.float32) / 255.0, lbl))
-        return ds.batch(batch_dimension).prefetch(tf.data.experimental.AUTOTUNE)
+        ds = ds.cache()
+        if training:
+            ds = ds.shuffle(10000, reshuffle_each_iteration=True)
+        ds = ds.batch(batch_dimension)
+        return ds.prefetch(tf.data.experimental.AUTOTUNE)
 
     def preprocess_cifar2_dataset(self, ds, animal_labels):
         batch_dimension = 1024
