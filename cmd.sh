@@ -129,12 +129,43 @@
 # python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/{TARGET}/main_full.keras --output=$TARGET --minim --skip-profiling
 # python s3hls.py --name $TARGET --novitis
 
-TARGET=mc10c26
-# python s1modelc10.py --name $TARGET --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
-python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c23/main_full.keras --output=$TARGET --minim --skip-profiling
-python s3hls.py --name $TARGET
 # TARGET=mc10c26
 # python s1modelc10.py --name $TARGET --filter0 10 --filter1a 20 --filter1b 24 --filter2 40 --filter3 18
-# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/{TARGET}/main_full.keras --output=$TARGET --minim --skip-profiling
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/mc10c23/main_full.keras --output=$TARGET --minim --skip-profiling
 # python s3hls.py --name $TARGET
+
+# TARGET=mc10c27
+# python s1modelc10.py --name $TARGET --filter0 10 --filter1a 15 --filter1b 20 --filter2 32 --filter3 16
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/$TARGET/main_full.keras --output=$TARGET --minim --skip-profiling
+# python s3hls.py --name $TARGET --novitis
+
+# TARGET=mc10c28
+# python s1modelc10.py --name $TARGET --filter0 12 --filter1a 24 --filter1b 32 --filter2 64 --filter3 24
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/$TARGET/main_full.keras --output=$TARGET --minim --skip-profiling
+# python s3hls.py --name $TARGET
+
+# TARGET=mc10c29
+# python s1modelc10.py --name $TARGET --filter0 32 --filter1a 56 --filter1b 64 --filter2 128 --filter3 64
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/$TARGET/main_full.keras --output=$TARGET --minim --skip-profiling
+# python s3hls.py --name $TARGET
+
+# TARGET=mc10c30
+# python s1modelc10.py --name $TARGET --filter0 16 --filter1a 24 --filter1b 32 --filter1c 32 --filter2 64 --filter3 48
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/$TARGET/main_full.keras --output=$TARGET --minim --skip-profiling
+# python s3hls.py --name $TARGET --novitis
+
+# TARGET=mc10c31
+# python s1modelc10.py --name $TARGET --filter0 24 --filter1a 56 --filter1b 64 --filter2 128 --filter3 48 --prune2 0.3
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/$TARGET/main_full.keras --output=$TARGET --minim --skip-profiling
+# python s3hls.py --name $TARGET --novitis
+
+# TARGET=mc10c32
+# python s1modelc10.py --name $TARGET --filter0 12 --filter1a 24 --filter1b 48 --filter2 64 --filter3 48 --prune2 0.3
+# python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/$TARGET/main_full.keras --output=$TARGET --minim --skip-profiling
+# python s3hls.py --name $TARGET --novitis
+
+TARGET=mc10c33
+python s1modelc10.py --name $TARGET --filter0 12 --filter1a 24 --filter1b 32 --filter2 64 --filter3 32 --prune2 0.3
+python s2hlsmodelZ2c10.py --sambung --c10 --input=keras/$TARGET/main_full.keras --output=$TARGET --minim --skip-profiling
+python s3hls.py --name $TARGET --novitis
 

@@ -135,7 +135,7 @@ aug = tf.keras.Sequential([
 ], name='aug')
 x = aug(inputs)
 # QActivation mengkuantisasi input [0,1]; QKeras versi ini tidak mendukung keep_sign arg.
-# Pakai bits=10, integer=0 (signed default) → efektif Q0.9, aman untuk nilai non-negatif.
+# Pakai bits=16, integer=0 (signed default) → efektif Q0.15, aman untuk nilai non-negatif.
 x = QActivation('quantized_bits(bits=16,integer=0,alpha=1)', name='input_quant')(x)
 x = QConv2DBatchnorm(
     args.filter0,
@@ -239,9 +239,11 @@ outputs = QDense(
     args.filter4, #default 10, cifar10 ada 10 kelas
     kernel_quantizer="quantized_bits(bits=16,integer=5,alpha=1)",
     bias_quantizer="quantized_bits(bits=16,integer=5,alpha=1)",
+    # misal 16bit integer 12 bit, sign 1bit, fractional 3 bit:
     # di qkeras, (bits=16, integer=12), 12 belum termasuk sign bit
-    # di hls4ml summary dan di C++. penulisan ap_fixed<25,13>
-    # berarti 25 bit total, 13 integer termasuk sign bit, sisanya fractional bit
+    # di hls4ml summary dan di C++. penulisan ap_fixed<16,13>
+    # berarti 16 bit total, 13 integer termasuk sign bit, sisanya fractional bit
+    # dipenulisan Qm.n, akan ditulis Q12.3
     kernel_regularizer=l2(1e-4),
     name='dense_2'
 )(y)
