@@ -35,7 +35,7 @@ if c10:
     specific_source = "mc10c8"
 
 copy(f'hls_output/{specific_source}/project.tcl', f'hls_output/{target}/project.tcl')
-copy(f'hls_output/{specific_source}/tb_data/X_test2.npy', f'hls_output/{target}/tb_data/X_test2.npy')
+# copy(f'hls_output/{specific_source}/tb_data/X_test2.npy', f'hls_output/{target}/tb_data/X_test2.npy') # now use npy/*_X_test_main.npy
 copy(f'hls_output/{specific_source}/firmware/tb_mc2h_axis64.cpp', f'hls_output/{target}/firmware/tb_mc2h_axis64.cpp')
 copy(f'hls_output/{specific_source}/firmware/mc2h_axis_wrapper.h', f'hls_output/{target}/firmware/mc2h_axis_wrapper.h')
 copy(f'hls_output/{specific_source}/firmware/mc2h_axis_wrapper.cpp', f'hls_output/{target}/firmware/mc2h_axis_wrapper.cpp')
