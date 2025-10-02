@@ -134,9 +134,11 @@ aug = tf.keras.Sequential([
     RandomFlip('horizontal')
 ], name='aug')
 x = aug(inputs)
+# 2025-10-2 quantisasi input ternyata mengikuti default precission <16,6> jadi qactivation ini tidak bermanfaat
+#
 # QActivation mengkuantisasi input [0,1]; QKeras versi ini tidak mendukung keep_sign arg.
 # Pakai bits=16, integer=0 (signed default) → efektif Q0.15, aman untuk nilai non-negatif.
-x = QActivation('quantized_bits(bits=16,integer=0,alpha=1)', name='input_quant')(x)
+# x = QActivation('quantized_bits(bits=16,integer=0,alpha=1)', name='input_quant')(x)
 x = QConv2DBatchnorm(
     args.filter0,
     kernel_size=(3, 3),
