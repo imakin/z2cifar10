@@ -110,6 +110,13 @@ parser.add_argument('--output', type=str, required=False, default='')
 parser.add_argument('--minim', action='store_true', help='bikin vitis project minimal')
 parser.add_argument('--c10', action='store_true', help='use cifar10 dataset')
 parser.add_argument('--skip-profiling', action='store_true', help='skip numerical profiling untuk menghindari hang')
+parser.add_argument('--strategy', type=str, required=False, default='Resource', help='Resource atau Latency')
+parser.add_argument('--reuse0', type=int, required=False, help='set reuse factor  fused_convbn_0' , default=432)
+parser.add_argument('--reuse1a',type=int, required=False,  help='set reuse factor fused_convbn_1a', default=432)
+parser.add_argument('--reuse1b',type=int, required=False,  help='set reuse factor fused_convbn_1b', default=432)
+parser.add_argument('--reuse1c',type=int, required=False,  help='set reuse factor fused_convbn_1c', default=432)
+parser.add_argument('--reuse2', type=int, required=False, help='set reuse factor fused_convbn_2'  , default=432)
+parser.add_argument('--reuse3', type=int, required=False, help='set reuse factor dense_1 '        , default=432)
 args = parser.parse_args()
 
 input_modelfull = args.input
@@ -206,11 +213,11 @@ for ln in hls_config['LayerName']:
 # input()
 hls_config['Model']['Strategy'] = 'Resource'
 hls_config['Model']['ReuseFactor'] = 60
-hls_config['LayerName']['fused_convbn_0']['ReuseFactor'] = 432
-hls_config['LayerName']['fused_convbn_1a']['ReuseFactor'] = 432 #9216
-hls_config['LayerName']['fused_convbn_1b']['ReuseFactor'] = 432 #36864
-hls_config['LayerName']['fused_convbn_2']['ReuseFactor'] = 432 #73728
-hls_config['LayerName']['dense_2']['ReuseFactor'] = 640
+hls_config['LayerName']['fused_convbn_0']['ReuseFactor'] = args.reuse0
+hls_config['LayerName']['fused_convbn_1a']['ReuseFactor'] = args.reuse1a #9216
+hls_config['LayerName']['fused_convbn_1b']['ReuseFactor'] = args.reuse1b #36864
+hls_config['LayerName']['fused_convbn_2']['ReuseFactor'] = args.reuse2 #73728
+hls_config['LayerName']['dense_2']['ReuseFactor'] = args.reuse3
 hls_config['LayerName']['dense_2']['Precision']['result'] = 'ap_fixed<16,6>'
 hls_config['Model']['Precision']['default'] = 'ap_fixed<16,6>'
 hls_config['Model']['Precision']['result'] = 'ap_fixed<16,6>'
@@ -270,11 +277,11 @@ del hls_model
 hls_config = hls4ml.utils.config_from_keras_model(model_target, granularity='name')
 hls_config['Model']['Strategy'] = 'Resource'
 hls_config['Model']['ReuseFactor'] = 60
-hls_config['LayerName']['fused_convbn_0']['ReuseFactor'] = 432
-hls_config['LayerName']['fused_convbn_1a']['ReuseFactor'] = 432 #9216
-hls_config['LayerName']['fused_convbn_1b']['ReuseFactor'] = 432 #36864
-hls_config['LayerName']['fused_convbn_2']['ReuseFactor'] = 432 #73728
-hls_config['LayerName']['dense_2']['ReuseFactor'] = 640
+hls_config['LayerName']['fused_convbn_0']['ReuseFactor'] = args.reuse0
+hls_config['LayerName']['fused_convbn_1a']['ReuseFactor'] = args.reuse1a #9216
+hls_config['LayerName']['fused_convbn_1b']['ReuseFactor'] = args.reuse1b #36864
+hls_config['LayerName']['fused_convbn_2']['ReuseFactor'] = args.reuse2 #73728
+hls_config['LayerName']['dense_2']['ReuseFactor'] = args.reuse3
 hls_config['LayerName']['dense_2']['Precision']['result'] = 'ap_fixed<16,6>'
 hls_config['Model']['Precision']['default'] = 'ap_fixed<16,6>'
 hls_config['Model']['Precision']['result'] = 'ap_fixed<16,6>'
