@@ -42,7 +42,8 @@ parser.add_argument(f'--prune1a', type=float, required=False, default=0.0)
 parser.add_argument(f'--prune1b', type=float, required=False, default=0.0)
 parser.add_argument(f'--prune1c', type=float, required=False, default=0.0)
 
-
+# bila --filter1a, 1b,1c tidak diisi, ikut nilai --filter1,
+# bila --prune1a, 1b,1c tidak diisi, ikut nilai --prune1,
 # layer 1c boleh diisi 0, yang artinya tidak ada layer 1c
 args = parser.parse_args()
 if args.filter1a==0:
@@ -260,10 +261,11 @@ model_full_unpruned = Model(inputs, outputs, name="model_full")
 def pruneF(layer):
     return pruneVarious(layer, sparsity_target={
         'fused_convbn_0': args.prune0, #default 0.1,
-        'fused_convbn_1a': args.prune1, #default 0.1,
-        'fused_convbn_1b': args.prune2, # 0.1,
-        'fused_convbn_2': args.prune3, # 0.2,
-        'dense_1': args.prune4, # 0.1,
+        'fused_convbn_1a': args.prune1a, #default 0.1,
+        'fused_convbn_1b': args.prune1b, # 0.1,
+        'fused_convbn_1c': args.prune1c, # 0.1,
+        'fused_convbn_2': args.prune2, # 0.2,
+        'dense_1': args.prune3, # 0.1,
     })
 
 # Prune semua model split sebelum training
@@ -310,7 +312,7 @@ full_model.fit(
 
 
 def build_inference_no_aug_softcoded(trained_model):
-    # Tentukan layer apa saja yang ingin Anda LEWATI
+    # skip beberapa layer (seperti aug)
     # Gunakan set ({}) untuk pencarian yang lebih cepat
     layers_to_skip = {
         'aug',                # Layer augmentasi
@@ -334,9 +336,7 @@ def build_inference_no_aug_softcoded(trained_model):
     # Buat model baru dari input baru dan output graf yang sudah dimodifikasi
     return tf.keras.Model(inp, x, name='model_full_no_aug_softcoded')
 
-# --- Cara Pakai ---
-# Asumsikan 'full_model' sudah ada dan terdefinisi
-
+# Buat model inference tanpa augmentasi dan dropout
 full_model = build_inference_no_aug_softcoded(full_model)
 
 # --- Testing ---
